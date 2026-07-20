@@ -1,0 +1,15 @@
+# Dockerfile for Xray Panel Agent
+FROM golang:1.23-alpine AS builder
+WORKDIR /app
+COPY go.mod go.sum ./
+RUN go mod download
+COPY . .
+RUN CGO_ENABLED=0 go build -ldflags="-s -w" -o /xray-agent ./cmd/agent
+
+FROM alpine:3.21
+RUN apk add --no-cache ca-certificates tzdata curl bash xray
+WORKDIR /app
+COPY --from=builder /xray-agent .
+EXPOSE 23889 23890
+ENV MMWX_LISTEN_PORT=23889
+ENTRYPOINT ["./xray-agent"]
