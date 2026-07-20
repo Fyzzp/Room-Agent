@@ -76,18 +76,21 @@ fi
 chmod +x /tmp/room-agent
 mv /tmp/room-agent /usr/local/bin/room-agent
 
+# shell-escape 防止命令注入
+shescape() { printf "'%s'" "$(printf '%s' "$1" | sed "s/'/'\\\\''/g")"; }
+
 # === 3. 创建配置 ===
 echo -e "${YELLOW}[3/5]${NC} 创建配置..."
 mkdir -p /etc/room-agent /var/lib/room-agent
 
 cat > /etc/room-agent/config.yaml << EOF
 mode: remote
-master_url: "${MASTER_URL}"
-token: "${TOKEN}"
+master_url: "$(shescape "$MASTER_URL")"
+token: "$(shescape "$TOKEN")"
 connection_mode: auto
-xray_mode: ${XRAY_MODE}
+xray_mode: $(shescape "$XRAY_MODE")
 xray_config_path: /usr/local/etc/xray/config.json
-listen_port: ${LISTEN_PORT}
+listen_port: $(shescape "$LISTEN_PORT")
 traffic_interval: 60
 speed_interval: 3
 heartbeat_interval: 30
