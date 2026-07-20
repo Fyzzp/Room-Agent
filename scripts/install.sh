@@ -79,6 +79,12 @@ mv /tmp/room-agent /usr/local/bin/room-agent
 # YAML-escape 防止命令注入和 YAML 注入
 shescape() { printf "'%s'" "$(printf '%s' "$1" | sed "s/'/''/g")"; }
 
+# 校验端口为纯数字，防止 YAML 注入
+if ! [[ "$LISTEN_PORT" =~ ^[0-9]+$ ]] || [ "$LISTEN_PORT" -lt 1024 ] || [ "$LISTEN_PORT" -gt 65535 ]; then
+    echo -e "${RED}无效端口: $LISTEN_PORT (需 1024-65535)${NC}"
+    exit 1
+fi
+
 # === 3. 创建配置 ===
 echo -e "${YELLOW}[3/5]${NC} 创建配置..."
 mkdir -p /etc/room-agent /var/lib/room-agent
