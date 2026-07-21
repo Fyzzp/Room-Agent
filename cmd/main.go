@@ -71,19 +71,24 @@ func main() {
 			case <-ctx.Done(): return
 			default:
 			}
-			if err := client.Connect(ctx); err != nil {
+
+			connCtx, connCancel := context.WithCancel(ctx)
+
+			if err := client.Connect(connCtx); err != nil {
+				connCancel()
 				log.Printf("[WS] Connect failed: %v, retry in 5s...", err)
 				time.Sleep(5 * time.Second)
 				continue
 			}
 			log.Println("[WS] Connected to master")
-			// 启动心跳
+
+			// 启动心跳（带取消）
 			go func() {
 				ticker := time.NewTicker(time.Duration(cfg.HeartbeatInterval) * time.Second)
 				defer ticker.Stop()
 				for {
 					select {
-					case <-ctx.Done(): return
+					case <-connCtx.Done(): return
 					case <-ticker.C:
 						if !client.IsConnected() { return }
 						client.Send("heartbeat", map[string]interface{}{
@@ -93,10 +98,11 @@ func main() {
 					}
 				}
 			}()
-			// 运行消息循环（阻塞直到断开）
-			if err := client.Run(ctx); err != nil {
+
+			if err := client.Run(connCtx); err != nil {
 				log.Printf("[WS] Disconnected: %v", err)
 			}
+			connCancel()
 			time.Sleep(5 * time.Second)
 		}
 	}()
